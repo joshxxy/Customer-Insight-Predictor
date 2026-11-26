@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customer Insight Predictor</title>
+<script>
+  (function(){var t=null;try{t=localStorage.getItem("theme")}catch(e){}
+  if(!t)t="dark";
+  document.documentElement.setAttribute("data-theme",t)})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1b1147;--ink2:#2b1d6b;--ink-text:#e9e5ff;--ink-mute:#a79fd6;
+  --bg:#f6f4ff;--card:#fff;--field:#fbfaff;--text:#1f1a3d;--mute:#6e6a8f;--line:#e2def6;--shadow:rgba(43,29,107,.25);
+  --coral:#ff5c8a;--violet:#6c4cf5;--mint:#3ee6b5;--amber:#ffc857;--red:#ff6b6b;
+  --head:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;
+}
+[data-theme="dark"]{
+  --ink:#0a0818;--ink2:#1c1450;
+  --bg:#0d0b1f;--card:#16132f;--field:#1d1940;--text:#ece9ff;--mute:#9a95c4;--line:#2c2757;--shadow:rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--body);background:var(--bg);color:var(--text);min-height:100vh;display:grid;grid-template-columns:420px 1fr;transition:background .4s,color .4s}
+@media(max-width:940px){body{grid-template-columns:1fr}}
+
+/* ---------- side panel with aurora ---------- */
+aside{position:sticky;top:0;height:100vh;overflow:hidden;background:var(--ink);color:var(--ink-text);padding:44px 36px;display:flex;flex-direction:column;isolation:isolate;transition:background .4s}
+@media(max-width:940px){aside{position:static;height:auto;padding:32px 22px}}
+.blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.55;z-index:-1;animation:drift 14s ease-in-out infinite alternate}
+.b1{width:320px;height:320px;background:var(--violet);top:-80px;left:-90px}
+.b2{width:260px;height:260px;background:var(--coral);bottom:-70px;right:-80px;animation-duration:18s;animation-delay:-5s}
+.b3{width:200px;height:200px;background:#18c4d8;top:44%;left:38%;opacity:.28;animation-duration:22s;animation-delay:-9s}
+@keyframes drift{to{transform:translate(70px,50px) scale(1.2)}}
+.brand{font-family:var(--head);font-weight:800;font-size:1.9rem;line-height:1.05;letter-spacing:-.02em;margin:0}
+.brand em{font-style:normal;background:linear-gradient(90deg,var(--coral),#ffa56b);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{margin:10px 0 0;color:var(--ink-mute);font-size:.95rem;line-height:1.5;max-width:30ch}
+.stage{flex:1;display:grid;place-items:center;padding:26px 0;position:relative}
+
+/* idle orbit */
+.idle{text-align:center;color:var(--ink-mute);line-height:1.5;font-size:.95rem;max-width:24ch}
+.orbit{width:150px;height:150px;margin:0 auto 18px;position:relative}
+.orbit i{position:absolute;inset:0;border-radius:50%;border:2px dashed rgba(255,255,255,.22);animation:spin 18s linear infinite}
+.orbit i:nth-child(2){inset:22px;border-color:rgba(255,92,138,.5);animation-duration:11s;animation-direction:reverse}
+.orbit i:nth-child(3){inset:48px;border:2px solid rgba(62,230,181,.55);animation:pulse 2.4s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{transform:scale(1.25);opacity:.4}}
+
+/* ring */
+.ring{position:relative;width:250px;height:250px;animation:pop .6s cubic-bezier(.2,1.4,.4,1)}
+.ring::after{content:"";position:absolute;inset:14px;border-radius:50%;box-shadow:0 0 60px 6px var(--c,var(--violet));opacity:.28;animation:glow 2.6s ease-in-out infinite;pointer-events:none}
+@keyframes glow{50%{opacity:.5;transform:scale(1.04)}}
+@keyframes pop{from{transform:scale(.7);opacity:0}}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg);position:relative;z-index:1}
+.track{stroke:rgba(255,255,255,.1)}
+.bar{stroke:var(--c,var(--violet));stroke-linecap:round;transition:stroke-dashoffset 1.3s cubic-bezier(.2,.8,.2,1),stroke .4s}
+.mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center;z-index:2}
+.pct{font-family:var(--head);font-weight:800;font-size:3.7rem;letter-spacing:-.03em;line-height:1}
+.pct small{font-size:1.6rem;font-weight:600}
+.cap{color:var(--ink-mute);font-size:.82rem;margin-top:6px}
+
+/* confetti */
+.spark{position:absolute;left:50%;top:50%;width:9px;height:9px;border-radius:2px;pointer-events:none;z-index:5;animation:burst 1.3s cubic-bezier(.15,.8,.3,1) forwards}
+@keyframes burst{from{transform:translate(-50%,-50%) scale(1);opacity:1}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(var(--rot)) scale(.4);opacity:0}}
+
+/* verdict */
+.verdict{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:18px 20px;backdrop-filter:blur(8px);animation:rise .7s .25s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{transform:translateY(24px);opacity:0}}
+.chip{display:inline-block;font-weight:700;font-size:.8rem;padding:4px 12px;border-radius:99px;color:#14102e;background:var(--c,var(--mint));animation:pop .5s .5s cubic-bezier(.2,1.6,.4,1) both}
+.seghead{display:flex;align-items:center;gap:14px;margin-top:14px}
+.icon{width:46px;height:46px;flex:none;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.1);animation:float 3.2s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-5px) rotate(-4deg)}}
+.icon svg{width:26px;height:26px;stroke:var(--c,#fff);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.verdict h3{font-family:var(--head);font-size:1.25rem;margin:0}
+.verdict p{margin:10px 0 0;color:var(--ink-mute);font-size:.88rem;line-height:1.5}
+.verdict .tip{color:var(--ink-text);font-weight:500}
+
+/* ---------- form ---------- */
+main{padding:44px clamp(20px,5vw,64px);max-width:860px;position:relative}
+@media(max-width:940px){main{padding:28px 22px 48px}}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+h2{font-family:var(--head);font-size:1.6rem;margin:0 0 4px;letter-spacing:-.01em}
+.lead{margin:0 0 26px;color:var(--mute)}
+.theme{flex:none;width:46px;height:46px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--text);cursor:pointer;display:grid;place-items:center;padding:0;transition:transform .3s,border-color .2s}
+.theme:hover{transform:rotate(25deg) scale(1.08);border-color:var(--violet)}
+.theme svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.sun{display:none}[data-theme="dark"] .sun{display:block}[data-theme="dark"] .moon{display:none}
+fieldset{border:0;margin:0 0 24px;padding:24px;background:var(--card);border-radius:22px;box-shadow:0 1px 0 var(--line),0 14px 34px -20px var(--shadow);transition:background .4s,transform .25s,box-shadow .25s;animation:rise .7s both}
+fieldset:nth-of-type(1){animation-delay:.05s}fieldset:nth-of-type(2){animation-delay:.18s}
+fieldset:hover{transform:translateY(-3px)}
+[data-theme="dark"] fieldset{border:1px solid var(--line)}
+legend{font-family:var(--head);font-weight:700;font-size:1.05rem;padding:0;float:left;width:100%;margin-bottom:16px}
+.grid{clear:both;display:grid;grid-template-columns:repeat(2,1fr);gap:16px 18px}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:.84rem;font-weight:600;margin-bottom:6px}
+label span{font-weight:400;color:var(--mute)}
+input,select{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--field);color:var(--text);font:500 .96rem var(--body);transition:border-color .15s,box-shadow .2s,transform .15s,background .4s}
+input:hover,select:hover{border-color:var(--violet)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:none;border-color:var(--violet);box-shadow:0 0 0 4px rgba(108,76,245,.25);transform:translateY(-1px)}
+.row{display:flex;gap:12px;flex-wrap:wrap;animation:rise .7s .3s both}
+button.b{font:700 .98rem var(--body);border:0;border-radius:14px;padding:15px 28px;cursor:pointer;transition:transform .15s,box-shadow .25s,border-color .2s}
+.go{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--coral),var(--violet));color:#fff;box-shadow:0 14px 28px -12px rgba(108,76,245,.8)}
+.go::after{content:"";position:absolute;top:0;left:-70%;width:50%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);transform:skewX(-20deg)}
+.go:hover{transform:translateY(-2px);box-shadow:0 18px 32px -12px rgba(255,92,138,.8)}
+.go:hover::after{animation:shine .8s}
+@keyframes shine{to{left:130%}}
+.go:active{transform:scale(.97)}
+.go:disabled{opacity:.8;cursor:wait}
+.go.load::before{content:"";display:inline-block;width:14px;height:14px;margin-right:10px;vertical-align:-2px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+.alt{background:var(--card);color:var(--text);border:1.5px solid var(--line)!important;padding:13px 18px!important;font-weight:600!important}
+.alt:hover{border-color:var(--violet)!important;transform:translateY(-2px)}
+.err{color:var(--red);margin-top:12px;font-weight:600;font-size:.9rem}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+  <h1 class="brand">Customer <em>Insight</em> Predictor</h1>
+  <p class="sub">See who is likely to say yes to your next campaign, and which segment they belong to.</p>
+
+  <div class="stage" id="stage">
+    <div class="idle" id="idle">
+      <div class="orbit"><i></i><i></i><i></i></div>
+      Fill in the customer profile and press <b>Predict</b> to see the result here.
+    </div>
+    <div class="ring" id="ring" hidden>
+      <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52" fill="none" stroke-width="9"/>
+        <circle class="bar" id="bar" cx="60" cy="60" r="52" fill="none" stroke-width="9" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg>
+      <div class="mid"><div class="pct"><span id="pct">0</span><small>%</small></div><div class="cap">chance of responding</div></div>
+    </div>
+  </div>
+
+  <div class="verdict" id="verdict" hidden>
+    <span class="chip" id="tier"></span>
+    <div class="seghead"><div class="icon"><svg id="icon" viewBox="0 0 24 24"></svg></div><h3 id="segName"></h3></div>
+    <p id="segDesc"></p>
+    <p class="tip" id="tip"></p>
+  </div>
+</aside>
+
+<main>
+  <div class="top">
+    <div><h2>Customer profile</h2><p class="lead">Enter what you know. Blank fields are filled with typical values.</p></div>
+    <button class="theme" id="theme" type="button" aria-label="Switch light and dark theme" title="Switch theme">
+      <svg class="moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+  </div>
+
+  <form id="form" autocomplete="off">
+    <fieldset>
+      <legend>About the customer</legend>
+      <div class="grid">
+        <div><label>Education</label>
+          <select name="Education"><option>Graduation</option><option>PhD</option><option>Master</option><option>2n Cycle</option><option>Basic</option></select></div>
+        <div><label>Marital status</label>
+          <select name="Marital_Status"><option>Married</option><option>Together</option><option>Single</option><option>Divorced</option><option>Widow</option><option>Other</option></select></div>
+        <div><label>Annual income <span>($)</span></label><input type="number" name="Income" min="0" value="52000"></div>
+        <div><label>Age <span>(in 2014)</span></label><input type="number" name="Age_At_2014" min="18" max="110" value="45"></div>
+        <div><label>Children at home</label><input type="number" name="Children_Home" min="0" max="6" value="1"></div>
+        <div><label>Complaint in last 2 years</label>
+          <select name="Complain"><option value="0">No</option><option value="1">Yes</option></select></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Shopping behaviour</legend>
+      <div class="grid">
+        <div><label>Days since last purchase</label><input type="number" name="Recency" min="0" value="49"></div>
+        <div><label>Customer for <span>(days)</span></label><input type="number" name="Customer_Tenure_Days" min="0" value="355"></div>
+        <div><label>Total spending <span>($)</span></label><input type="number" name="Total_Spending" min="0" value="400"></div>
+        <div><label>Total purchases</label><input type="number" name="Total_Purchases" min="0" value="12"></div>
+        <div><label>Website visits per month</label><input type="number" name="NumWebVisitsMonth" min="0" value="6"></div>
+        <div><label>Purchases with a deal</label><input type="number" name="NumDealsPurchases" min="0" value="2"></div>
+        <div><label>Past campaigns accepted <span>(0 to 5)</span></label><input type="number" name="Previous_Campaigns_Accepted" min="0" max="5" value="0"></div>
+      </div>
+    </fieldset>
+
+    <div class="row">
+      <button class="b go" id="go" type="submit">Predict response</button>
+      <button class="b alt" type="button" id="premium">Load premium example</button>
+      <button class="b alt" type="button" id="family">Load family example</button>
+    </div>
+    <div class="err" id="err" role="alert"></div>
+  </form>
+</main>
+
+<script>
+const $ = s => document.querySelector(s), form = $("#form"), C = 326.7;
+const ex = {
+  premium:{Education:"PhD",Marital_Status:"Single",Income:85000,Age_At_2014:40,Children_Home:0,Complain:0,Recency:10,Customer_Tenure_Days:500,Total_Spending:1800,Total_Purchases:25,NumWebVisitsMonth:3,NumDealsPurchases:1,Previous_Campaigns_Accepted:2},
+  family:{Education:"Basic",Marital_Status:"Married",Income:30000,Age_At_2014:50,Children_Home:2,Complain:0,Recency:80,Customer_Tenure_Days:200,Total_Spending:100,Total_Purchases:5,NumWebVisitsMonth:8,NumDealsPurchases:5,Previous_Campaigns_Accepted:0}
+};
+const tips = {High:"Strong candidate. Put this customer first in your next campaign.",
+  Medium:"Borderline. Try a tailored offer or an A/B test.",
+  Low:"Unlikely to respond. Save the budget or lead with a deal."};
+const col = {High:"#3ee6b5",Medium:"#ffc857",Low:"#ff6b6b"};
+const icons = {
+  1:'<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>',
+  0:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>'
+};
+const fill = v => Object.entries(v).forEach(([k,x]) => form.elements[k].value = x);
+$("#premium").onclick = () => fill(ex.premium);
+$("#family").onclick = () => fill(ex.family);
+
+$("#theme").onclick = () => {
+  const n = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = n;
+  try { localStorage.setItem("theme", n); } catch(e) {}
+};
+
+function countUp(el, to){
+  const t0 = performance.now(), dur = 1300;
+  (function f(t){ const k = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-k,3);
+    el.textContent = (to*e).toFixed(1); if(k<1) requestAnimationFrame(f); else el.textContent = to.toFixed(1); })(t0);
+}
+function confetti(){
+  const stage = $("#stage"), cs = ["#3ee6b5","#ff5c8a","#ffc857","#6c4cf5","#fff"];
+  for(let i=0;i<28;i++){
+    const s = document.createElement("span"), a = Math.random()*Math.PI*2, d = 110+Math.random()*90;
+    s.className = "spark"; s.style.background = cs[i%cs.length];
+    s.style.setProperty("--dx",Math.cos(a)*d+"px"); s.style.setProperty("--dy",Math.sin(a)*d+"px");
+    s.style.setProperty("--rot",(Math.random()*540-270)+"deg");
+    stage.appendChild(s); setTimeout(()=>s.remove(),1400);
+  }
+}
+
+form.addEventListener("submit", async e => {
+  e.preventDefault(); $("#err").textContent = "";
+  const b = $("#go"); b.disabled = true; b.classList.add("load"); b.textContent = "Predicting…";
+  try {
+    const r = await fetch("/predict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(form)))});
+    if(!r.ok) throw new Error("the server returned " + r.status);
+    const d = await r.json(), pct = Math.round(d.probability*1000)/10, c = col[d.tier];
+
+    // restart entrance animations on each prediction
+    const ring = $("#ring"), v = $("#verdict");
+    $("#idle").hidden = true; ring.hidden = false; v.hidden = false;
+    [ring, v].forEach(el => { el.style.animation = "none"; void el.offsetWidth; el.style.animation = ""; });
+    $("#bar").style.strokeDashoffset = C;
+    ring.style.setProperty("--c", c); v.style.setProperty("--c", c);
+    requestAnimationFrame(() => requestAnimationFrame(() => $("#bar").style.strokeDashoffset = C - C*d.probability));
+    countUp($("#pct"), pct);
+
+    $("#tier").textContent = d.tier + " likelihood";
+    $("#icon").innerHTML = icons[d.segment_id] || icons[0];
+    $("#segName").textContent = d.name; $("#segDesc").textContent = d.desc; $("#tip").textContent = tips[d.tier];
+    if (d.tier === "High") setTimeout(confetti, 900);
+  } catch(err){ $("#err").textContent = "Prediction failed: " + err.message + ". Check that the app is still running in PowerShell."; }
+  finally { b.disabled = false; b.classList.remove("load"); b.textContent = "Predict response"; }
+});
+</script>
+</body>
+</html>
