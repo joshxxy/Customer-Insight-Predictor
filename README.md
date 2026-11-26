@@ -1,6 +1,3 @@
 # Customer Insight Predictor
 
-pip install -r requirements.txt
-python app.py        # then open http://127.0.0.1:5000
-
-Models were trained with scikit-learn 1.6.1 (pinned in requirements.txt).
+Machine learning web app that scores a customer's marketing campaign response likelihood and assigns a customer segment (Premium Spenders or Value-Conscious Families). Built with Flask, scikit-learn and gradient boosting.
